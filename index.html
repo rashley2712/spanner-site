@@ -1,78 +1,83 @@
 <html>
-<script language="Javascript">
-    var getJSON = function(url, callback) {
-        var xhr = new XMLHttpRequest();
-            xhr.open('GET', url, true);
-            xhr.responseType = 'json';
-            xhr.onload = function() {
-                var status = xhr.status;
-                if (status === 200) {
-                    callback(null, xhr.response);
-                } else {
-                    callback(status, xhr.response);
-                }
-            };
-        xhr.send();
-    };    
-
-    document.onload = onLoad();
-    function onLoad() {
-        console.log("The page has loaded....");
-        getJSON('info', function(err, data) {
-            if (err!==null) console.log("JSON info not found.");
-            else {
-                console.log(data);
-                var info = data;
-                for (var key in info) {
-                    console.log(key + " : " + info[key]);
-                    try {
-                        // Write into the HTML page if there is a <span> element with the appropriate name
-                        var value = info[key];
-                        switch(key) {
-                            case 'totalmem':
-                                value = Math.floor(parseInt(value)/1e9);  // Convert bytes to gigabytes
-                                break;
-                            case 'uptime':
-                                var seconds = parseInt(value);
-                                var days = Math.floor(seconds/86400);
-                                seconds = seconds - days*86400;
-                                var hours = Math.floor(seconds/3600);
-                                seconds = seconds - hours*3600;
-                                var minutes = Math.floor(seconds/60);
-                                seconds = seconds - minutes*60;
-                                value = days + "d " + hours + "h " + minutes + "m " + seconds + "s";
+    <head>
+        <link rel="stylesheet" type="text/css" href="styles.css">
+            <title>rashley-spanner.co.uk</title>
+        
+        <script language="Javascript">
+            var getJSON = function(url, callback) {
+                var xhr = new XMLHttpRequest();
+                    xhr.open('GET', url, true);
+                    xhr.responseType = 'json';
+                    xhr.onload = function() {
+                        var status = xhr.status;
+                        if (status === 200) {
+                            callback(null, xhr.response);
+                        } else {
+                            callback(status, xhr.response);
                         }
-                        document.getElementById(key).innerText = value;
-                    } catch (err) {
-                        // Otherwise, do nothing
-                    }
-                }
-            }
-        });
-    }
+                    };
+                xhr.send();
+            };    
 
-    var getJSON = function(url, callback) {
-        var xhr = new XMLHttpRequest();
-            xhr.open('GET', url, true);
-            xhr.responseType = 'json';
-            xhr.onload = function() {
-                var status = xhr.status;
-                if (status === 200) {
-                    callback(null, xhr.response);
-                } else {
-                    callback(status, xhr.response);
-                }
-            };
-        xhr.send();
-        };    
-    
+            document.onload = onLoad();
+            function onLoad() {
+                console.log("The page has loaded....");
+                getJSON('info', function(err, data) {
+                    if (err!==null) console.log("JSON info not found.");
+                    else {
+                        console.log(data);
+                        var info = data;
+                        for (var key in info) {
+                            console.log(key + " : " + info[key]);
+                            try {
+                                // Write into the HTML page if there is a <span> element with the appropriate name
+                                var value = info[key];
+                                switch(key) {
+                                    case 'totalmem':
+                                        value = Math.floor(parseInt(value)/1e9);  // Convert bytes to gigabytes
+                                        break;
+                                    case 'uptime':
+                                        var seconds = parseInt(value);
+                                        var days = Math.floor(seconds/86400);
+                                        seconds = seconds - days*86400;
+                                        var hours = Math.floor(seconds/3600);
+                                        seconds = seconds - hours*3600;
+                                        var minutes = Math.floor(seconds/60);
+                                        seconds = seconds - minutes*60;
+                                        value = days + "d " + hours + "h " + minutes + "m " + seconds + "s";
+                                }
+                                document.getElementById(key).innerText = value;
+                            } catch (err) {
+                                // Otherwise, do nothing
+                            }
+                        }
+                    }
+                });
+            }
+
+            var getJSON = function(url, callback) {
+                var xhr = new XMLHttpRequest();
+                    xhr.open('GET', url, true);
+                    xhr.responseType = 'json';
+                    xhr.onload = function() {
+                        var status = xhr.status;
+                        if (status === 200) {
+                            callback(null, xhr.response);
+                        } else {
+                            callback(status, xhr.response);
+                        }
+                    };
+                xhr.send();
+                };    
+            
 
 
 </script>
-
+</head>
 
 <body>
-    Hello!
+    
+    <img src="cover_image.png" width="400">
 
     <p>This is the nodewebserver running on <span id="hostname" style="font-weight: bold;">[hostname]</span></p>
     <table border="1">
