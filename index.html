@@ -1,10 +1,11 @@
 <html>
     <head>
-        <link rel="stylesheet" type="text/css" href="styles.css">
-            <title>rashley-spanner.co.uk</title>
+        <link rel="stylesheet" type="text/css" href="styles.css"/>
+        <title>rashley-spanner.co.uk</title>
         
+        <script src="astrotools.js"></script>
         <script language="Javascript">
-            var getJSON = function(url, callback) {
+            function getJSON(url, callback) {
                 var xhr = new XMLHttpRequest();
                     xhr.open('GET', url, true);
                     xhr.responseType = 'json';
@@ -20,8 +21,10 @@
             };    
 
             document.onload = onLoad();
+
             function onLoad() {
                 console.log("The page has loaded....");
+                getJSON('astro/moonphase', moon);
                 getJSON('info', function(err, data) {
                     if (err!==null) console.log("JSON info not found.");
                     else {
@@ -53,23 +56,26 @@
                         }
                     }
                 });
+                
+                
             }
 
-            var getJSON = function(url, callback) {
-                var xhr = new XMLHttpRequest();
-                    xhr.open('GET', url, true);
-                    xhr.responseType = 'json';
-                    xhr.onload = function() {
-                        var status = xhr.status;
-                        if (status === 200) {
-                            callback(null, xhr.response);
-                        } else {
-                            callback(status, xhr.response);
-                        }
-                    };
-                xhr.send();
-                };    
-            
+           function moon(err, data) {
+               console.log("moon data....");
+               console.log(data);
+               document.getElementById("moonphase").innerText = decimalPlacesString(data.illuminated, 2) + "  " + data.mode;
+               getJSON('astro/sun', sun);
+            }
+
+           function sun(err, data) {
+               console.log("sun data....");
+               console.log(data);
+               document.getElementById("etwilight").innerText = data.etwilight;
+               document.getElementById("mtwilight").innerText = data.mtwilight;
+               document.getElementById("sunset").innerText = data.sunset;
+               document.getElementById("sunrise").innerText = data.sunrise;
+               
+           }
 
 
 </script>
@@ -80,6 +86,25 @@
     <img src="cover_image.png" width="400">
 
     <p>This is the nodewebserver running on <span id="hostname" style="font-weight: bold;">[hostname]</span></p>
+    <p>
+        <table border="1">
+            <tr>
+                <td style="font-weight: bold;">Current moon phase</td><td><span id="moonphase"></span></td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold;">Sunset</td><td><span id="sunset"></span></td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold;">Evening twilight</td><td><span id="etwilight"></span></td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold;">Morning twilight</td><td><span id="mtwilight"></span></td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold;">Sunrise</td><td><span id="sunrise"></span></td>
+            </tr>
+        </table>
+    </p>
     <table border="1">
         <tr>
             <td style="font-weight: bold;">platform</td><td><span id="platform"></span></td>
