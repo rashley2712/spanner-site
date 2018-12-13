@@ -1,6 +1,13 @@
 <html>
     <head>
-        <link rel="stylesheet" type="text/css" href="styles.css"/>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+        <!-- Latest compiled and minified CSS -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+        
+        <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+        <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="styles.css"/> 
         <title>R2D2 charts</title>
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
         <script language="Javascript">
@@ -8,11 +15,18 @@
             google.charts.setOnLoadCallback(onLoad);
 
             var seeingData = {};
+            var startTime = null;
+            var endTime = null;
+            var refreshID = null;
+            var liveData = false;
+            var dataRefreshSize = "7200";   // Data range for updates (in seconds)
+
+            var allCharts = [];
 
             function onLoad() {
                 console.log("The page has loaded....");
-                timerID = setInterval(clockTicker, 1000);
-                getNewData('86400');
+                tickerID = setInterval(clockTicker, 1000);
+                getNewData('7200');
             } 
 
             function decimalPlacesFloat(value, places) {
@@ -27,16 +41,16 @@
                 seeingData['seeing_long'] = [];
                 seeingData['star'] = [];
                 seeingData['airmass'] = [];
-                console.log("seeing data....contains " + textData.length + " rows.");
+                console.log("get_data.php returned " + textData.length + " rows.");
                 if (err!=null) {
                     console.log("Error...");
                     console.log(err);
                     return;
                 }
                 for (var i in textData) {
-                    fields = textData[i].split(",");
-                    if (i==0) continue;
-                    if (fields.length<2) continue;
+                    if (textData[i][0] == '#') continue;  // Skip lines containing comments
+                    fields = textData[i].split(",");     
+                    if (fields.length<2) continue;        // Skip the blank lines
                     seeingData['dates'].push(new Date(fields[0]));
                     seeingData['seeing_trans'].push(parseFloat(fields[1]));
                     seeingData['seeing_long'].push(parseFloat(fields[2]));
@@ -47,14 +61,20 @@
                 //for (var i in seeingData['dates']) {
                 //    console.log(seeingData['dates'][i] + " : " + seeingData['seeing_trans'][i] + " " + seeingData['seeing_long'][i] + " " + seeingData['star'][i] + ' ' + seeingData['airmass'][i]);
                 //}
-                console.log("Data loaded, now calling 'drawChart'");
+                console.log("Data loaded... " + seeingData['dates'].length + " data points.");
                 document.getElementById('npoints').innerText = seeingData['dates'].length;
                 if (seeingData['dates'].length) {
-                    drawSeeingChart();
-                    drawStarChart();
-                    drawAirmassSeeingChart();
-                    drawStatsChart();
+                    allCharts=[];
+                    allCharts.push(drawSeeingChart());
+                    allCharts.push(drawStarChart());
+                    allCharts.push(drawAirmassSeeingChart());
+                    allCharts.push(drawStatsChart());
+                } else {
+                    // No data returned... clear the charts
+                    for (var i in allCharts) allCharts[i].clearChart();
                 }
+                $('#downloading').css('color', 'gray');
+
             }
 
             function drawStarChart() {
@@ -77,12 +97,15 @@
                 var options = {
                     animation: {startup: true, duration: 750, easing: 'out' } , 
                     backgroundColor: "#f5f4f0", 
-                    chartArea: { 
-                        backgroundColor: "#f5f4f0", 
-                        width: 580,
-                        }
+                    hAxis: {
+                        maxValue: endTime, 
+                        minValue: startTime
+                        },
+                    width: 640,
+                   
                 };
                 chart.draw(dataTable, options);
+                return chart;
 
             }
 
@@ -98,8 +121,12 @@
                 var chart = new google.visualization.ScatterChart(document.getElementById('airmass'));
                 var options = {
                     title: 'Airmass vs Seeing', 
-                    hAxis: {title: 'airmass'},
-                    vAxis: {title: 'seeing'},
+                    hAxis: {title: 'airmass',
+                            titleTextStyle: { italic: false }
+                            },
+                    vAxis: {title: 'seeing (arcsec)',
+                            titleTextStyle: { italic: false }
+                            },
                     backgroundColor: "#f5f4f0", 
                     series: {
                         0: { pointShape: 'square',
@@ -118,6 +145,7 @@
                     
                 }
                 chart.draw(data, options);
+                return chart;
             }
 
             function drawSeeingChart() {
@@ -132,6 +160,18 @@
                 var options = {
                     title: 'Seeing',
                     legend: { position: 'in' }, 
+                    dataOpacity: 1.0,
+                    vAxis: {
+                        title: 'FWHM (arcsec)',
+                        titleTextStyle: { italic: false }
+                        },
+                    hAxis: {
+                        title: 'Time',
+                        maxValue: endTime, 
+                        minValue: startTime,
+                        titleTextStyle: { italic: false },
+                        format: 'HH:mm',
+                        },
                     chartArea: { 
                         backgroundColor: "#f5f4f0", 
                         width: 600,
@@ -145,28 +185,13 @@
                         actions: ['dragToZoom', 'rightClickToReset'],
                         maxZoomIn: 0.01 
                         },
-                    trendlines: {
-                        0: {
-                        type: 'polynomial',
-                        color: 'blue',
-                        lineWidth: 1,
-                        opacity: 0.3,
-                        degree: 0,
-                        },
-                        1: {
-                        type: 'polynomial',
-                        color: 'red',
-                        lineWidth: 1,
-                        opacity: 0.3,
-                        animation: {startup: true, duration: 750, easing: 'out' } , 
-                             degree: 0,
-                        }
-                    }
                 };
+                if ((endTime - startTime) > 86400*1000) options.hAxis.format = "yyyy-MM-dd";
 
                 var chart = new google.visualization.ScatterChart(document.getElementById('seeing'));
                 
                 chart.draw(data, options);
+                return chart;
             }
 
             function drawStatsChart() {
@@ -192,15 +217,19 @@
                 options = {
                     backgroundColor: "#f5f4f0", 
                     title: "median: " + decimalPlacesFloat(median, 2) + " mean: " + decimalPlacesFloat(mean, 2) + " stddev: " + decimalPlacesFloat(std, 2), 
-                    hAxis: {title: 'seeing'},
-                    vAxis: {title: 'N'},
+                    hAxis: {title: 'seeing (arcsec)',
+                            titleTextStyle: { italic: false }
+                            },
+                    vAxis: {title: 'N',
+                            titleTextStyle: { italic: false }
+                            },
                     legend: {position: 'none'},
                     histogram: { hideBucketItems: true }
                     };
                 for (var i in seeing) data.addRow([seeing[i]]);
                 chart = new google.visualization.Histogram(document.getElementById('stats'));
                 chart.draw(data, options);
-
+                return chart;
             }
 
             function getData(url, callback) {
@@ -221,19 +250,41 @@
             function getNewData(seconds) {
                 console.log("in get new data....");
                 console.log("seconds to go back to..." + seconds);
+                var oldRefresh = dataRefreshSize;
+                dataRefreshSize = seconds;
+                if (dataRefreshSize > 86400 && liveData ){
+                    toggleRefresh();
+                    $('#refresh').bootstrapToggle('off');
+                }
+                if (oldRefresh!=seconds) {
+                    document.getElementById("r" + oldRefresh).setAttribute("class", "timebutton");
+                    document.getElementById("r" + seconds).setAttribute("class", "timebutton btn-primary");
+                }
                 var now = new Date();
                 console.log(now);
                 var startDate = new Date(now - seconds * 1000);
                 console.log(startDate);
-                var params = "time_start=" + encodeURIComponent(formatUTCTime(startDate));
+                startTime = startDate;
+                endTime = now;
+                fillDateFields();
+                var params = "time_start=" + encodeURIComponent(formatUTCTime(startTime));
+                params+="&time_end=" + encodeURIComponent(formatUTCTime(endTime));
                 console.log("Params: " + params);
                 // params = "time_start=2018-12-11+20%3A00%3A00";
+                //document.getElementById("downloading").setAttribute("style", "colour: green");
+                $('#downloading').css('color', 'green');
                 getData('http://robodimm.ing.iac.es/robodimm/get_data.php?' + params, processData);
             }    
 
             function clockTicker() {
 		    	var now = new Date();
-			    document.getElementById('UTCfield').innerText = formatUTCTime(now);
+                // console.log("tick");
+			    document.getElementById('UTCfield').value = formatUTCTime(now);
+            }
+
+            function fillDateFields() {
+                document.getElementById('starttime').value = formatUTCTime(startTime);
+                document.getElementById('endtime').value = formatUTCTime(endTime);
             }
 
             function zeroPad(input) {
@@ -246,7 +297,47 @@
                 var time = zeroPad(date.getUTCHours()) + ":" + zeroPad(date.getUTCMinutes()) + ":" + zeroPad(date.getUTCSeconds());
                 return dateStr + " " + time;
 			}
+
+            function changeDateRange() {
+                function isValidDate(d) {
+                    return d instanceof Date && !isNaN(d);
+                    }
+                var newStartTime = document.getElementById('starttime').value;
+                var newEndTime = document.getElementById('endtime').value;
+                var newStart = new Date(newStartTime);
+                var newEnd = new Date(newEndTime);
+                if (!isValidDate(newStart)) { alert("Invalid date!"); return; }
+                if (!isValidDate(newEnd)) { alert("Invalid date!"); return; }
+                if (newEnd<newStart) { alert("end before beginning!"); return }
+
+                startTime = newStart;
+                endTime = newEnd;
+                console.log("Fetching data from " + formatUTCTime(startTime) + " to " + formatUTCTime(endTime));
+
+                var params = "time_start=" + encodeURIComponent(formatUTCTime(startTime));
+                params+="&time_end=" + encodeURIComponent(formatUTCTime(endTime));
+                console.log("Params: " + params);
+                $('#downloading').css('color', 'green');
+                getData('http://robodimm.ing.iac.es/robodimm/get_data.php?' + params, processData);
+            }
+
+            function refreshData() {
+                console.log("Refreshing data...");
+                getNewData(dataRefreshSize);
+            }
   
+            function toggleRefresh(value) {
+                if (value) {
+                    console.log("Toggle refresh: ON");
+                    refreshID = setInterval(refreshData, 30 * 1000);
+                    liveData = true;
+                } else {
+                    console.log("Toggle refresh: OFF");
+                    clearInterval(refreshID);
+                    liveData = false;
+                }
+                
+            }
 	
             
            
@@ -256,28 +347,37 @@
 <body>
     
     <img src="r2d2graphs.png">
-        <div>
-            Current date: <span id="UTCfield"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <span id="npoints" style="font-weight: bold;">0</span> points in dataset.
-        </div>
-        <div class="button">
-                <button onclick="getNewData('86400')">24hr</button>
-                <button onclick="getNewData('43200')">12hr</button>
-                <button onclick="getNewData('28800')">8hr</button>
-                <button onclick="getNewData('14400')">4hr</button>
-                <button onclick="getNewData('7200')">2hr</button>
-        </div>
-        <div class="button">
-                <button onclick="getNewData('604800')">1 week</button>
-                <button onclick="getNewData('2678400')">1 month</button>
-                <button onclick="getNewData('16070400')">6 months</button>
-                <button onclick="getNewData('31536000')">1 year</button>
-        </div> 
-    
+    <div>
+        <span class="glyphicon glyphicon-time" style="color:black"></span>
+        <input type="text" id="UTCfield" size="21"></input>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="glyphicon glyphicon-time" style="color:green"></span>
+	    <input type="text" size="21" id="starttime" value="" onchange="changeDateRange()"></input>
+        <input type="text" size="21" id="endtime" value="" onchange="changeDateRange()"></input>
+        <span class="glyphicon glyphicon-time" style="color:red"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span id="downloading" class="glyphicon glyphicon-download" style="color:gray"></span>
+        <input id="refresh" type="checkbox" data-toggle="toggle" data-onstyle="success" data-size="small" data-on="refresh" data-off="static" onchange="toggleRefresh(this.checked)">
+        
+    </div>
+    <div>
+        <button class="timebutton btn-primary" id="r7200"  onclick="getNewData('7200')">2hr</button>
+        <button class="timebutton" id="r14400"   onclick="getNewData('14400')">4hr</button>
+        <button class="timebutton" id="r28800"   onclick="getNewData('28800')">8hr</button>
+        <button class="timebutton" id="r43200"   onclick="getNewData('43200')">12hr</button>
+        <button class="timebutton" id="r86400"   onclick="getNewData('86400')">24hr</button>
+        <button class="timebutton" id="r604800"  onclick="getNewData('604800')">1 week</button>
+        <button class="timebutton" id="r2678400" onclick="getNewData('2678400')">1 month</button>
+        <button class="timebutton" id="r16070400" onclick="getNewData('16070400')">6 months</button>
+        <button class="timebutton" id="r31536000" onclick="getNewData('31536000')">1 year</button>
+    </div> 
+
+    <div>
+        <span id="npoints" style="font-weight: bold;">0</span> points in dataset.
+    </div>
+
     <div id="seeing" style="width: 750px; height: 500px; position: absolute; top: 180px; left: 40px;"></div>
     <div id="stats" style="width: 500px; height: 500px;  position: absolute; top: 180px; left: 750px;"></div>
-    <div id="stars" style="width: 720px; height: 300px; position: absolute; top: 630px; left: 0px;"></div>
-    <div id="airmass" style="width: 500px; height: 500px;  position: absolute; top: 610px; left: 750px;"></div>
+    <div id="stars" style="width: 720px; height: 400px; position: absolute; top: 700px; left: 0px;"></div>
+    <div id="airmass" style="width: 500px; height: 500px;  position: absolute; top: 660px; left: 750px;"></div>
     
 </body>
 </html>

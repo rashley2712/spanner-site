@@ -1,10 +1,10 @@
 body
 {
-font-size:75%;
+font-size:100%;
 font-family:verdana,arial,'sans serif';
 background-repeat:repeat-x;
 background-color:#f5f4f0;
-color:#b08d44;
+color:#251b03;
 margin: 0 auto;
 }
 
@@ -45,6 +45,10 @@ a:hover {
 /* selected link */
 a:active {
     color: #b08d44;
+}
+
+button.timebutton {
+    width: 80;
 }
 
 .footer {color:#b08d44;font-style:italic;}
@@ -93,4 +97,9 @@ a:active {
 }
 .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-switch {
     right: 0px; 
+}
+
+.glyphicon {
+    font-size: 18px;
+    vertical-align: middle;
 }
