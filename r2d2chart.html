@@ -29,7 +29,10 @@
                 if (localStorage.getItem("liveData") != null) {
                     liveData = localStorage.getItem("liveData");
                     console.log("Restored liveData to: "+ liveData);
-                    if (liveData==1) $('#refresh').bootstrapToggle('on');
+                    if (liveData==1) {
+                        $('#refresh').bootstrapToggle('on');
+                        document.getElementById("liveDisplay").style.visibility = "visible";
+                    }
                 };
                 if (localStorage.getItem("dataRefreshSize") != null) {
                     loadedDataRefreshSize = localStorage.getItem("dataRefreshSize");
@@ -375,11 +378,14 @@
                     refreshID = setInterval(refreshData, 30 * 1000);
                     liveData = 1;
                     localStorage.setItem("liveData", 1);
+                    document.getElementById("liveDisplay").style.visibility = "visible";
+                    getNewData(dataRefreshSize);
                 } else {
                     console.log("Toggle refresh: OFF");
                     clearInterval(refreshID);
                     liveData = 0;
                     localStorage.setItem("liveData", 0);
+                    document.getElementById("liveDisplay").style.visibility = "hidden";
                 }
                 
             }
@@ -404,7 +410,7 @@
         <span id="npoints" style="font-weight: bold;">0</span> points in dataset.    
     </div>
     
-    <div id="liveDisplay" style="position: absolute; z-index: 1; left: 200px; top: 170px; opacity: 1.0; visibility: visible;">
+    <div id="liveDisplay" style="position: absolute; z-index: 1; left: 200px; top: 170px; opacity: 1.0; visibility: hidden;">
         <button class="btn-lg" id="latestseeing" aria-pressed="true" >--</button>
         <button class="btn" id="lateststar" >--</button>
         <button class="btn" id="timesince" >--</button>
