@@ -10,6 +10,7 @@
         <link rel="stylesheet" type="text/css" href="styles.css"/> 
         <title>R2D2 charts</title>
         <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+        <script type="text/javascript" src="charts.js"></script>
         <script language="Javascript">
             google.charts.load('current', {'packages':['corechart', 'timeline']});
             google.charts.setOnLoadCallback(onLoad);
@@ -26,20 +27,18 @@
 
             function onLoad() {
                 console.log("The page has loaded....");
+                if (localStorage.getItem("dataRefreshSize") != null) {
+                    dataRefreshSize = localStorage.getItem("dataRefreshSize");
+                    console.log("Restored dataRefreshSize to: "+ dataRefreshSize);
+                }
                 if (localStorage.getItem("liveData") != null) {
                     liveData = localStorage.getItem("liveData");
                     console.log("Restored liveData to: "+ liveData);
-                    if (liveData==1) {
-                        $('#refresh').bootstrapToggle('on');
-                        document.getElementById("liveDisplay").style.visibility = "visible";
                     }
-                };
-                if (localStorage.getItem("dataRefreshSize") != null) {
-                    loadedDataRefreshSize = localStorage.getItem("dataRefreshSize");
-                    console.log("Restored dataRefreshSize to: "+ loadedDataRefreshSize);
-                    getNewData(loadedDataRefreshSize);
+                if (liveData==1) {
+                   $('#refresh').bootstrapToggle('on');
+                    document.getElementById("liveDisplay").style.visibility = "visible";
                 } else getNewData(dataRefreshSize);
-
                 
                 tickerID = setInterval(clockTicker, 1000);
             } 
@@ -56,6 +55,8 @@
                 seeingData['seeing_long'] = [];
                 seeingData['star'] = [];
                 seeingData['airmass'] = [];
+                seeingData['mean_x'] = [];
+                seeingData['mean_y'] = [];
                 console.log("get_data.php returned " + textData.length + " rows.");
                 if (err!=null) {
                     console.log("Error...");
@@ -71,6 +72,8 @@
                     seeingData['seeing_long'].push(parseFloat(fields[2]));
                     seeingData['star'].push(fields[3]);
                     seeingData['airmass'].push(parseFloat(fields[4]));
+                    seeingData['mean_x'].push(parseFloat(fields[5]));
+                    seeingData['mean_y'].push(parseFloat(fields[6]));
                 }
 
                 //for (var i in seeingData['dates']) {
@@ -84,6 +87,7 @@
                     allCharts.push(drawStarChart());
                     allCharts.push(drawAirmassSeeingChart());
                     allCharts.push(drawStatsChart());
+                    allCharts.push(drawPositionChart());
                 } else {
                     // No data returned... clear the charts
                     for (var i in allCharts) allCharts[i].clearChart();
@@ -100,161 +104,6 @@
                 // Change the status of the downloading icon back to gray
                 $('#downloading').css('color', 'gray');
 
-            }
-
-            function drawStarChart() {
-                var dataTable = new google.visualization.DataTable();
-                dataTable.addColumn({ type: 'string', id: 'Star' });
-                dataTable.addColumn({ type: 'date', id: 'Start' });
-                dataTable.addColumn({ type: 'date', id: 'End' });
-    
-                currentStar = "none";
-                for (var i in seeingData['dates']) {
-                    if (seeingData['star'][i] != currentStar) {
-                        if (currentStar!="none") dataTable.addRow( [ currentStar, startTime, endTime ]);
-                        currentStar = seeingData['star'][i];
-                        startTime = seeingData['dates'][i];
-                    }
-                    endTime = seeingData['dates'][i];
-                }
-                dataTable.addRow( [ currentStar, startTime, endTime ]);
-                var chart = new google.visualization.Timeline(document.getElementById('stars'));
-                var options = {
-                    animation: {startup: true, duration: 750, easing: 'out' } , 
-                    backgroundColor: "#f5f4f0", 
-                    hAxis: {
-                        maxValue: endTime, 
-                        minValue: startTime
-                        },
-                    width: 640,
-                   
-                };
-                chart.draw(dataTable, options);
-                return chart;
-
-            }
-
-            function drawAirmassSeeingChart() {
-                var data =  new google.visualization.DataTable();
-                data.addColumn('number', 'airmass');
-                data.addColumn('number', 'seeing');
-                for (var i in seeingData['dates']) {
-                    meanSeeing = (seeingData['seeing_trans'][i] + seeingData['seeing_long'][i]) / 2;
-                    airmass = parseFloat(seeingData['airmass'][i]);
-                    data.addRow([airmass, meanSeeing]);
-                }
-                var chart = new google.visualization.ScatterChart(document.getElementById('airmass'));
-                var options = {
-                    title: 'Airmass vs Seeing', 
-                    hAxis: {title: 'airmass',
-                            titleTextStyle: { italic: false }
-                            },
-                    vAxis: {title: 'seeing (arcsec)',
-                            titleTextStyle: { italic: false }
-                            },
-                    backgroundColor: "#f5f4f0", 
-                    series: {
-                        0: { pointShape: 'square',
-                        visibleInLegend: false },
-                    },
-                    dataOpacity: 0.4,
-                    trendlines: {
-                        0: {
-                        type: 'linear',
-                        color: 'blue',
-                        lineWidth: 1,
-                        opacity: 0.3,
-                        visibleInLegend: false
-                        }
-                    }
-                    
-                }
-                chart.draw(data, options);
-                return chart;
-            }
-
-            function drawSeeingChart() {
-                var data =  new google.visualization.DataTable();
-                data.addColumn('date', 'Date');
-                data.addColumn('number', 'Seeing Long');
-                data.addColumn('number', 'Seeing Trans');
-                for (var i in seeingData['dates']) {
-                    data.addRow([seeingData['dates'][i], parseFloat(seeingData['seeing_trans'][i]), parseFloat(seeingData['seeing_long'][i])]);
-                }
-                
-                var options = {
-                    title: 'Seeing',
-                    legend: { position: 'in' }, 
-                    dataOpacity: 1.0,
-                    vAxis: {
-                        title: 'FWHM (arcsec)',
-                        titleTextStyle: { italic: false }
-                        },
-                    hAxis: {
-                        title: 'Time',
-                        maxValue: endTime, 
-                        minValue: startTime,
-                        titleTextStyle: { italic: false },
-                        format: 'HH:mm',
-                        },
-                    chartArea: { 
-                        backgroundColor: "#f5f4f0", 
-                        width: 600,
-                        }, 
-                    backgroundColor: "#f5f4f0", 
-                    series: {
-                        0: { pointShape: 'square' },
-                        1: { pointShape: 'triangle' },
-                    },
-                    explorer: { 
-                        actions: ['dragToZoom', 'rightClickToReset'],
-                        maxZoomIn: 0.01 
-                        },
-                };
-                if ((endTime - startTime) > 86400*1000) options.hAxis.format = "yyyy-MM-dd";
-
-                var chart = new google.visualization.ScatterChart(document.getElementById('seeing'));
-                
-                chart.draw(data, options);
-                return chart;
-            }
-
-            function drawStatsChart() {
-                seeing = [];
-                for (var i in seeingData['dates']) seeing.push((seeingData['seeing_trans'][i] + seeingData['seeing_long'][i])/2 );
-                
-                var n = seeing.length;
-                var sum = 0;
-                for (var i in seeing) sum = sum + seeing[i];
-                var mean = sum/n;
-                var variance = 0;
-                for (var i in seeing) variance+= (seeing[i] - mean)**2;
-                var std = Math.sqrt(variance/(n-1));
-                console.log("Mean: " + mean);
-                console.log("Std deviation: " + std);
-                seeing.sort(function(a,b){ return a-b; });
-                var midpoint = Math.floor(n / 2);
-                if (n % 2) median = seeing[midpoint]; else var median = (seeing[midpoint - 1] + seeing[midpoint]) / 2.0;
-                console.log("Median: " + median);
-
-                data =  new google.visualization.DataTable();
-                data.addColumn('number', 'Seeing');
-                options = {
-                    backgroundColor: "#f5f4f0", 
-                    title: "median: " + decimalPlacesFloat(median, 2) + " mean: " + decimalPlacesFloat(mean, 2) + " stddev: " + decimalPlacesFloat(std, 2), 
-                    hAxis: {title: 'seeing (arcsec)',
-                            titleTextStyle: { italic: false }
-                            },
-                    vAxis: {title: 'N',
-                            titleTextStyle: { italic: false }
-                            },
-                    legend: {position: 'none'},
-                    histogram: { hideBucketItems: true }
-                    };
-                for (var i in seeing) data.addRow([seeing[i]]);
-                chart = new google.visualization.Histogram(document.getElementById('stats'));
-                chart.draw(data, options);
-                return chart;
             }
 
             function getData(url, callback) {
@@ -357,14 +206,14 @@
                 else if ((seeing>1.5) && (seeing<2)) document.getElementById("latestseeing").className = "btn-lg btn-warning";
                 else document.getElementById("latestseeing").className = "btn-lg btn-danger";
                 $('#lateststar').text(latestReading['star']);
-                var timeSince = (new Date() - latestReading['dates']) / 1000;
+                var timeSince = parseFloat((new Date() - latestReading['dates']) / 1000);
                 console.log("time since " + timeSince);
                 var timeSinceStr = "";
                 if (timeSince<60) timeSinceStr = decimalPlacesFloat(timeSince, 0) + "s";
                 if ((timeSince>=60) && (timeSince<3600)) timeSinceStr = decimalPlacesFloat(timeSince/60, 0) + "m";
                 if ((timeSince>=3600) && (timeSince<86400)) {
                     var hours = Math.floor(timeSince/3600);
-                    var minutes = Math.floor(timeSince - hours * 60);
+                    var minutes = Math.floor(timeSince/60 - hours*60);
                     timeSinceStr = zeroPad(hours) + ":" + zeroPad(minutes);
                 }
                 if (timeSince>86400) timeSinceStr = ">24hr";
@@ -429,10 +278,11 @@
     </div> 
 
     
-    <div id="seeing" style="width: 750px; height: 500px; position: absolute; top: 180px; left: 40px;"></div>
+    <div id="seeing" style="width: 750px; height: 500px; position: absolute; top: 180px; left: 20px;"></div>
     <div id="stats" style="width: 500px; height: 500px;  position: absolute; top: 180px; left: 750px;"></div>
-    <div id="stars" style="width: 720px; height: 400px; position: absolute; top: 700px; left: 0px;"></div>
-    <div id="airmass" style="width: 500px; height: 500px;  position: absolute; top: 660px; left: 750px;"></div>
+    <div id="stars" style="width: 700px; height: 400px; position: absolute; top: 1180px; left: 20px;"></div>
+    <div id="airmass" style="width: 500px; height: 500px;  position: absolute; top: 650px; left: 750px;"></div>
+    <div id="position" style="width: 750px; height: 500px;  position: absolute; top: 650px; left: 20px;"></div>
     
 </body>
 </html>
