@@ -217,9 +217,12 @@
                     var yHeight = chart.getChartLayoutInterface().getChartAreaBoundingBox().height;
                     var overlay = document.getElementById('stats_overlay');
                     var canvasHeight = overlay.height;
+                    var canvasWidth = overlay.width;
                     var ctx = overlay.getContext("2d");
+                    ctx.clearRect(0, 0, canvasidth, canvasHeight);
                     ctx.setLineDash([6, 2]);
                     ctx.strokeStyle = 'red';
+                    ctx.lineWidth = 2;
                     ctx.beginPath();
                     ctx.moveTo(medianPixel, canvasHeight - yTop);
                     ctx.lineTo(medianPixel, canvasHeight - (yTop + yHeight));
