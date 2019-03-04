@@ -50,7 +50,9 @@
             }
 
            function processData(err, textData) {
-                var textData = textData.split('\n');
+                textData = textData.split('\n');
+                seeingData = null;
+                seeingData = [];
                 seeingData['dates'] = [];
                 seeingData['seeing_trans'] = [];
                 seeingData['seeing_long'] = [];
@@ -80,6 +82,7 @@
                 console.log("Data loaded... " + seeingData['dates'].length + " data points.");
                 document.getElementById('npoints').innerText = seeingData['dates'].length;
                 if (seeingData['dates'].length) {
+                    for (var i in allCharts) allCharts[i].clearChart();
                     allCharts=[];
                     allCharts.push(drawSeeingChart());
                     allCharts.push(drawStarChart());
@@ -89,6 +92,9 @@
                 } else {
                     // No data returned... clear the charts
                     for (var i in allCharts) allCharts[i].clearChart();
+                    allCharts = null;
+                    seeingData = null;
+
                 }
 
                 latestReading = {};
@@ -101,6 +107,7 @@
                 if (liveData) updateLiveDisplay();
                 // Change the status of the downloading icon back to gray
                 $('#downloading').css('color', 'gray');
+                textData = null;
 
             }
 
