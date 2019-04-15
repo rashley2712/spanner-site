@@ -86,7 +86,7 @@
                     allCharts=[];
                     allCharts.push(drawSeeingChart());
                     allCharts.push(drawStarChart());
-                    allCharts.push(drawAirmassSeeingChart());
+                    //allCharts.push(drawAirmassSeeingChart());
                     allCharts.push(drawStatsChart());
                     allCharts.push(drawPositionChart());
                 } else {
@@ -97,12 +97,15 @@
 
                 }
 
+                
                 latestReading = {};
-                var keys = Object.keys(seeingData);
-                var lastIndex = seeingData['dates'].length - 1;
-                for (var k in keys) {
-                    console.log(keys[k]);
-                    latestReading[keys[k]] = seeingData[keys[k]][lastIndex];
+                if (seeingData != null) {
+                    var keys = Object.keys(seeingData);
+                    var lastIndex = seeingData['dates'].length - 1;
+                    for (var k in keys) {
+                        //console.log(keys[k]);
+                        latestReading[keys[k]] = seeingData[keys[k]][lastIndex];
+                    }
                 }
                 if (liveData) updateLiveDisplay();
                 // Change the status of the downloading icon back to gray
@@ -151,6 +154,7 @@
                 // params = "time_start=2018-12-11+20%3A00%3A00";
                 //document.getElementById("downloading").setAttribute("style", "colour: green");
                 $('#downloading').css('color', 'green');
+                document.getElementById("rawURL").href = baseURL + '?' + params;
                 getData(baseURL + '?' + params, processData);
             }    
 
@@ -287,8 +291,12 @@
     <div id="stats" style="width: 500px; height: 500px;  position: absolute; top: 180px; left: 750px;"></div>
     <canvas width=500 height=500 id="stats_overlay" style="width: 500; height:500; position: absolute; top: 180px; left: 750px; z-index:auto"></canvas>
     <div id="stars" style="width: 700px; height: 400px; position: absolute; top: 1180px; left: 20px;"></div>
-    <div id="airmass" style="width: 500px; height: 500px;  position: absolute; top: 670px; left: 750px;"></div>
+    <!--<div id="airmass" style="width: 500px; height: 500px;  position: absolute; top: 670px; left: 750px;"></div> -->
     <div id="position" style="width: 750px; height: 500px;  position: absolute; top: 670px; left: 20px;"></div>
     
+    <div id="debuginfo">
+        <a id="rawURL" href="" target="_new">raw data</a>
+    </div>
+
 </body>
 </html>

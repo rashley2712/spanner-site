@@ -187,7 +187,7 @@
                 console.log("Std deviation: " + std);
                 seeing.sort(function(a,b){ return a-b; });
                 var midpoint = Math.floor(n / 2);
-                if (n % 2) median = seeing[midpoint]; else var median = (seeing[midpoint - 1] + seeing[midpoint]) / 2.0;
+                if (n % 2) var median = seeing[midpoint]; else var median = (seeing[midpoint - 1] + seeing[midpoint]) / 2.0;
                 console.log("Median: " + median);
 
                 data =  new google.visualization.DataTable();
@@ -219,7 +219,7 @@
                     var canvasHeight = overlay.height;
                     var canvasWidth = overlay.width;
                     var ctx = overlay.getContext("2d");
-                    ctx.clearRect(0, 0, canvasidth, canvasHeight);
+                    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
                     ctx.setLineDash([6, 2]);
                     ctx.strokeStyle = 'red';
                     ctx.lineWidth = 2;
